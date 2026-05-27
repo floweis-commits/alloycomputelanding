@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Alloy Compute</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --p:#7C6BFF;--p2:rgba(124,107,255,.18);--p4:rgba(124,107,255,.4);
+  --gold:#D4AF37;--bg:#08090C;--s1:#17171F;--s2:#1A1A24;--s3:#2B2B39;
+  --txt:#F5F5F5;--muted:rgba(245,245,245,.28);
+}
+html,body{height:100%;background:var(--bg);color:var(--txt);
+  font-family:'IBM Plex Mono','Courier New',monospace;overflow-x:hidden}
+
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:998;
+  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.06) 3px,rgba(0,0,0,.06) 4px)}
+
+#bg-canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+
+.grid{position:fixed;inset:0;z-index:1;pointer-events:none;
+  background-image:linear-gradient(rgba(124,107,255,.035) 1px,transparent 1px),
+                   linear-gradient(90deg,rgba(124,107,255,.035) 1px,transparent 1px);
+  background-size:52px 52px;
+  mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,black 20%,transparent 100%)}
+
+/* ── SCRAMBLE ──────────────────────────────────── */
+#intro{
+  position:fixed;inset:0;z-index:50;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
+  background:var(--bg);transition:opacity .9s ease}
+#intro.fade{opacity:0;pointer-events:none}
+
+.intro-label{font-size:9px;font-weight:500;letter-spacing:.38em;
+  text-transform:uppercase;color:var(--muted)}
+
+#scramble-line{
+  font-size:clamp(13px,1.5vw,17px);font-weight:700;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--txt);min-height:1.5em;text-align:center;
+  white-space:nowrap}
+
+/* ── HERO ──────────────────────────────────────── */
+#hero{position:relative;z-index:10;min-height:100vh;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  padding:60px 24px;opacity:0;transition:opacity .9s ease}
+#hero.on{opacity:1}
+
+.logo-wrap{clip-path:inset(100% 0 0 0);transition:clip-path 1.1s cubic-bezier(.16,1,.3,1)}
+.logo-wrap.on{clip-path:inset(0% 0 0 0)}
+#logo-img{display:block;width:80px;height:auto}
+
+.lockup{display:flex;align-items:center;gap:28px;margin-bottom:40px}
+.wordmark{display:flex;flex-direction:column;line-height:1;gap:1px}
+.wm{display:block;font-size:clamp(30px,5vw,54px);font-weight:700;
+  letter-spacing:.2em;text-transform:uppercase;color:var(--txt);
+  opacity:0;transform:translateX(-18px);transition:opacity .5s ease,transform .55s ease}
+.wm.on{opacity:1;transform:translateX(0)}
+
+.tagrow{display:flex;align-items:center;gap:16px;margin-bottom:60px;
+  opacity:0;transition:opacity 1s ease}
+.tagrow.on{opacity:1}
+.tgrule{width:32px;height:1px;background:linear-gradient(90deg,transparent,var(--p4))}
+.tgrule.r{background:linear-gradient(270deg,transparent,var(--p4))}
+.tagline{font-size:clamp(8px,1.1vw,10px);font-weight:500;letter-spacing:.34em;
+  text-transform:uppercase;color:var(--p);white-space:nowrap}
+
+.divider{width:100%;max-width:680px;height:1px;margin-bottom:40px;
+  opacity:0;transition:opacity .8s ease;
+  background:linear-gradient(90deg,transparent,var(--s3) 15%,var(--p2) 50%,var(--s3) 85%,transparent)}
+.divider.on{opacity:1}
+
+.mlbl{font-size:8px;font-weight:500;letter-spacing:.36em;text-transform:uppercase;
+  color:var(--muted);margin-bottom:18px;opacity:0;transition:opacity .8s ease}
+.mlbl.on{opacity:1}
+
+/* ── MARQUEE ───────────────────────────────────── */
+.mq-outer{width:100%;max-width:1000px;overflow:hidden;position:relative;
+  opacity:0;transition:opacity 1s ease}
+.mq-outer.on{opacity:1}
+.mq-outer::before,.mq-outer::after{content:'';position:absolute;top:0;bottom:0;
+  width:80px;z-index:2;pointer-events:none}
+.mq-outer::before{left:0;background:linear-gradient(90deg,var(--bg),transparent)}
+.mq-outer::after{right:0;background:linear-gradient(270deg,var(--bg),transparent)}
+.mq-track{display:flex;width:max-content;animation:scroll 44s linear infinite}
+.mq-track:hover{animation-play-state:paused}
+@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+
+.mchip{
+  display:flex;flex-direction:row;align-items:center;gap:10px;
+  padding:10px 16px;border:1px solid var(--s3);background:var(--s1);
+  margin:0 5px;flex-shrink:0;height:56px;
+  clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
+  transition:border-color .2s,background .2s;cursor:default}
+.mchip:hover{border-color:var(--p);background:var(--s2)}
+.mchip-logo{width:32px;height:32px;display:flex;align-items:center;
+  justify-content:center;overflow:hidden;border-radius:4px;flex-shrink:0}
+.mchip-logo img{display:block;width:32px;height:32px;object-fit:contain}
+.mchip-text{display:flex;flex-direction:column;gap:2px}
+.mchip-name{font-size:10px;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--txt);white-space:nowrap;line-height:1.2}
+.mchip-family{font-size:8px;font-weight:500;letter-spacing:.12em;
+  text-transform:uppercase;color:var(--muted);white-space:nowrap}
+
+/* CTA */
+.cta-wrap{margin-top:40px;display:flex;justify-content:center;
+  opacity:0;transition:opacity 1s ease}
+.cta-wrap.on{opacity:1}
+.cta-btn{
+  display:inline-block;padding:8px 0;
+  background:transparent;border:none;
+  color:var(--p);font-family:'IBM Plex Mono',monospace;
+  font-size:10px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;
+  text-decoration:none;cursor:pointer;
+  transition:opacity .2s}
+.cta-btn:hover{opacity:.7}
+
+.footer{position:absolute;bottom:20px;left:0;right:0;
+  display:flex;justify-content:center;gap:20px;
+  font-size:8px;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--muted);opacity:0;transition:opacity 1.2s ease}
+.footer.on{opacity:1}
+.fsep{opacity:.3}
+</style>
+</head>
+<body>
+
+<canvas id="bg-canvas"></canvas>
+<div class="grid"></div>
+
+<!-- SCRAMBLE -->
+<div id="intro">
+  <p class="intro-label">INITIALIZING INFERENCE</p>
+  <div id="scramble-line">&nbsp;</div>
+</div>
+
+<!-- HERO -->
+<main id="hero">
+  <div class="lockup">
+    <div class="logo-wrap" id="logo-wrap">
+      <img id="logo-img" src="alloy_symbol_purple.png" alt="Alloy Compute"/>
+    </div>
+    <div class="wordmark">
+      <span class="wm" id="wm0">ALLOY</span>
+      <span class="wm" id="wm1">COMPUTE</span>
+    </div>
+  </div>
+
+  <div class="tagrow" id="tagrow">
+    <div class="tgrule"></div>
+    <span class="tagline">may the tokens forever be in your favor</span>
+    <div class="tgrule r"></div>
+  </div>
+
+  <div class="divider" id="divider"></div>
+  <div class="mq-outer" id="mq"><div class="mq-track" id="mqt"></div></div>
+
+  <div class="cta-wrap" id="cta">
+    <a class="cta-btn" href="mailto:hello@alloycompute.com">Request API Access</a>
+  </div>
+
+  <div class="footer" id="footer">
+    <span>© 2025 Alloy Compute</span>
+    <span class="fsep">//</span>
+    <span>alloycompute.com</span>
+  </div>
+</main>
+
+<script>
+/* ── CANVAS WAVES ─────────────────────────────── */
+(function(){
+  const cv=document.getElementById('bg-canvas'),ctx=cv.getContext('2d');
+  let W,H;
+  const resize=()=>{W=cv.width=window.innerWidth;H=cv.height=window.innerHeight};
+  window.addEventListener('resize',resize);resize();
+  const waves=[
+    {f:.0018,a:65,s:.20,y:.28,o:.05},{f:.0026,a:42,s:.33,y:.48,o:.038},
+    {f:.0013,a:88,s:.14,y:.62,o:.048},{f:.0032,a:28,s:.48,y:.38,o:.03},
+    {f:.0016,a:52,s:.26,y:.72,o:.042},{f:.004, a:18,s:.58,y:.55,o:.024},
+  ];
+  let t=0;
+  (function draw(){
+    ctx.clearRect(0,0,W,H);
+    waves.forEach(w=>{
+      ctx.beginPath();
+      ctx.strokeStyle=`rgba(124,107,255,${w.o})`;ctx.lineWidth=1.5;
+      const y0=H*w.y;
+      for(let x=0;x<=W;x+=3){
+        const y=y0+Math.sin(x*w.f+t*w.s)*w.a+Math.sin(x*w.f*1.8+t*w.s*.55)*(w.a*.28);
+        x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+      }
+      ctx.stroke();
+    });
+    t+=.016;requestAnimationFrame(draw);
+  })();
+})();
+
+/* ── SCRAMBLE — single line, left-to-right reveal ── */
+(function(){
+  const CHARS='!<>-_\\/[]{}=+*^?#°$§&@%|;:~';
+  const el=document.getElementById('scramble-line');
+
+  // Short sequence: DeepSeek → Qwen → Kimi → brand
+  const PHRASES=[
+    'DEEPSEEK-R1 / 0.28s / 312 tok/s / $0.08/M',
+    'QWEN-3.7 / 0.33s / 256 tok/s / $0.22/M',
+    'KIMI-K2 / 0.51s / 189 tok/s / $0.18/M',
+    'ALLOY COMPUTE',
+  ];
+
+  function rand(){return CHARS[Math.floor(Math.random()*CHARS.length)];}
+
+  function reveal(target,duration,holdMs,onDone){
+    const start=performance.now(),len=target.length;
+    (function tick(now){
+      const p=Math.min((now-start)/duration,1);
+      const locked=Math.floor(p*len);
+      let out='';
+      for(let i=0;i<len;i++){
+        if(i<locked||target[i]===' '||target[i]==='/')out+=target[i];
+        else out+=rand();
+      }
+      el.textContent=out;
+      p<1?requestAnimationFrame(tick):(el.textContent=target,onDone&&setTimeout(onDone,holdMs));
+    })(start);
+  }
+
+  function go(i){
+    if(i>=PHRASES.length){
+      // Brief scramble-out then show hero
+      let n=0;
+      const t=PHRASES[PHRASES.length-1],len=t.length;
+      const iv=setInterval(()=>{
+        let o='';for(let i=0;i<len;i++)o+=rand();
+        el.textContent=o;
+        if(++n>6){
+          clearInterval(iv);
+          document.getElementById('intro').classList.add('fade');
+          document.getElementById('hero').classList.add('on');
+          setTimeout(()=>document.getElementById('logo-wrap').classList.add('on'),500);
+          setTimeout(()=>{
+            document.getElementById('wm0').classList.add('on');
+            setTimeout(()=>document.getElementById('wm1').classList.add('on'),200);
+          },1000);
+          setTimeout(()=>document.getElementById('tagrow').classList.add('on'),1700);
+          setTimeout(()=>{on('divider');on('mq');},2200);
+          setTimeout(()=>{on('cta');on('footer');},3000);
+        }
+      },65);
+      return;
+    }
+    const isLast=i===PHRASES.length-1;
+    reveal(PHRASES[i],1600,isLast?1000:650,()=>go(i+1));
+  }
+
+  function on(id){document.getElementById(id).classList.add('on');}
+  window.addEventListener('load',()=>setTimeout(()=>go(0),300));
+})();
+
+/* ── MODEL CAROUSEL ───────────────────────────── */
+(function(){
+  const MODELS=[
+    {src:'logos/llama.png',    name:'Llama 4',      family:'Meta'},
+    {src:'logos/deepseek.svg', name:'DeepSeek R1',  family:'DeepSeek'},
+    {src:'logos/qwen.png',     name:'Qwen 3',       family:'Alibaba'},
+    {src:'logos/kimi.png',     name:'Kimi K2',      family:'Moonshot'},
+    {src:'logos/mistral.png',  name:'Mistral',      family:'Mistral AI'},
+    {src:'logos/gemma.png',    name:'Gemma 3',      family:'Google'},
+    {src:'logos/phi.png',      name:'Phi-4',        family:'Microsoft'},
+    {src:'logos/cohere.png',   name:'Command R+',   family:'Cohere'},
+    {src:'logos/minimax.png',  name:'MiniMax M1',   family:'MiniMax'},
+    {src:'logos/glm.png',      name:'GLM-4',        family:'Zhipu AI'},
+  ];
+
+  const track=document.getElementById('mqt');
+  [...MODELS,...MODELS].forEach(m=>{
+    const c=document.createElement('div');
+    c.className='mchip';
+    c.innerHTML=`
+      <div class="mchip-logo"><img src="${m.src}" alt="${m.name}" loading="lazy"></div>
+      <span class="mchip-name">${m.name}</span>`;
+    track.appendChild(c);
+  });
+})();
+</script>
+</body>
+</html>
