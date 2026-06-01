@@ -63,8 +63,19 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:998;
 .tagrow.on{opacity:1}
 .tgrule{width:32px;height:1px;background:linear-gradient(90deg,transparent,var(--p4))}
 .tgrule.r{background:linear-gradient(270deg,transparent,var(--p4))}
-.tagline{font-size:clamp(8px,1.1vw,10px);font-weight:500;letter-spacing:.34em;
+.tagline{font-size:clamp(7px,1vw,9px);font-weight:500;letter-spacing:.18em;
   text-transform:uppercase;color:var(--p);white-space:nowrap}
+
+/* ── STATS BAR ─────────────────────────────────── */
+.stats{display:flex;align-items:center;gap:48px;margin-bottom:32px;
+  opacity:0;transition:opacity 1s ease}
+.stats.on{opacity:1}
+.stat{display:flex;flex-direction:column;align-items:center;gap:5px}
+.stat-val{font-size:clamp(20px,2.8vw,32px);font-weight:700;color:var(--p);
+  letter-spacing:.04em;line-height:1}
+.stat-lbl{font-size:7px;font-weight:500;letter-spacing:.28em;
+  text-transform:uppercase;color:var(--muted);white-space:nowrap}
+.stat-sep{width:1px;height:36px;background:var(--s3)}
 
 .divider{width:100%;max-width:680px;height:1px;margin-bottom:40px;
   opacity:0;transition:opacity .8s ease;
@@ -149,12 +160,29 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:998;
 
   <div class="tagrow" id="tagrow">
     <div class="tgrule"></div>
-    <span class="tagline">may the tokens forever be in your favor</span>
+    <span class="tagline">the inference api for latency-critical workloads</span>
     <div class="tgrule r"></div>
   </div>
 
   <div class="divider" id="divider"></div>
   <div class="mq-outer" id="mq"><div class="mq-track" id="mqt"></div></div>
+
+  <div class="stats" id="stats">
+    <div class="stat">
+      <span class="stat-val">&lt;200MS</span>
+      <span class="stat-lbl">P99 TTFT</span>
+    </div>
+    <div class="stat-sep"></div>
+    <div class="stat">
+      <span class="stat-val">30+</span>
+      <span class="stat-lbl">Open-Weight Models</span>
+    </div>
+    <div class="stat-sep"></div>
+    <div class="stat">
+      <span class="stat-val">DEDICATED</span>
+      <span class="stat-lbl">Inference Cards</span>
+    </div>
+  </div>
 
   <div class="cta-wrap" id="cta">
     <a class="cta-btn" href="mailto:hello@alloycompute.com">Request API Access</a>
@@ -203,9 +231,9 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:998;
 
   // Short sequence: DeepSeek → Qwen → Kimi → brand
   const PHRASES=[
-    'DEEPSEEK-R1 / 0.28s / 312 tok/s / $0.08/M',
-    'QWEN-3.7 / 0.33s / 256 tok/s / $0.22/M',
-    'KIMI-K2 / 0.51s / 189 tok/s / $0.18/M',
+    'DEEPSEEK-R1  /  TTFT 180MS  /  312 TOK/S',
+    'QWEN3-CODER  /  TTFT 195MS  /  287 TOK/S',
+    'KIMI-K2      /  TTFT 210MS  /  224 TOK/S',
     'ALLOY COMPUTE',
   ];
 
@@ -245,7 +273,8 @@ body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:998;
           },1000);
           setTimeout(()=>document.getElementById('tagrow').classList.add('on'),1700);
           setTimeout(()=>{on('divider');on('mq');},2200);
-          setTimeout(()=>{on('cta');on('footer');},3000);
+          setTimeout(()=>on('stats'),2800);
+          setTimeout(()=>{on('cta');on('footer');},3300);
         }
       },65);
       return;
