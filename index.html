@@ -1,320 +1,533 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Alloy Compute</title>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600;700&display=swap" rel="stylesheet"/>
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --p:#7C6BFF;--p2:rgba(124,107,255,.18);--p4:rgba(124,107,255,.4);
-  --gold:#D4AF37;--bg:#08090C;--s1:#17171F;--s2:#1A1A24;--s3:#2B2B39;
-  --txt:#F5F5F5;--muted:rgba(245,245,245,.28);
-}
-html,body{height:100%;background:var(--bg);color:var(--txt);
-  font-family:'IBM Plex Mono','Courier New',monospace;overflow-x:hidden}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alloy Compute — Inference API for Latency-Critical Workloads</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:ital,wght@0,400;0,500;0,700;1,400&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg:     #08090C;
+      --purple: #7C6BFF;
+      --s1:     #17171F;
+      --s2:     #1A1A24;
+      --s3:     #2B2B39;
+      --text:   #F5F5F5;
+      --muted:  rgba(245,245,245,.58);
+      --font:   'IBM Plex Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); overflow-x: hidden; }
 
-body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:998;
-  background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,.06) 3px,rgba(0,0,0,.06) 4px)}
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      padding: 24px 48px;
+      display: flex; align-items: center; justify-content: space-between;
+      background: linear-gradient(to bottom, rgba(8,9,12,.95) 0%, transparent 100%);
+    }
+    .nav-brand { display: flex; align-items: center; gap: 12px; text-decoration: none; }
+    .nav-brand img { width: 26px; height: 26px; }
+    .nav-wordmark { font-size: 12px; font-weight: 700; letter-spacing: .15em; text-transform: uppercase; color: var(--text); }
+    .nav-cta {
+      font-family: var(--font); font-size: 10px; font-weight: 700;
+      letter-spacing: .16em; text-transform: uppercase;
+      color: var(--bg); background: var(--text);
+      padding: 10px 22px; text-decoration: none;
+      transition: background .2s, color .2s;
+    }
+    .nav-cta:hover { background: var(--purple); color: var(--text); }
 
-#bg-canvas{position:fixed;inset:0;width:100%;height:100%;z-index:0;pointer-events:none}
+    /* HERO */
+    #hero {
+      position: relative; height: 100vh; min-height: 600px;
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      overflow: hidden;
+    }
+    #wave-canvas { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+    .hero-content {
+      position: relative; z-index: 2; text-align: center;
+      display: flex; flex-direction: column; align-items: center; gap: 22px;
+    }
+    .hero-logo { overflow: hidden; }
+    .hero-logo img {
+      display: block; width: 68px; height: 68px;
+      clip-path: inset(100% 0 0 0);
+      transition: clip-path .9s cubic-bezier(.16,1,.3,1);
+    }
+    .hero-logo img.revealed { clip-path: inset(0% 0 0 0); }
+    #scramble {
+      font-size: clamp(14px, 2.2vw, 26px); font-weight: 700;
+      letter-spacing: .08em; color: var(--text);
+      white-space: nowrap; min-height: 1.4em;
+    }
+    .hero-tagline {
+      font-size: clamp(10px, 1.15vw, 13px); font-weight: 400;
+      letter-spacing: .2em; text-transform: uppercase; color: var(--purple);
+    }
+    .scroll-cue {
+      position: absolute; bottom: 44px; left: 50%;
+      transform: translateX(-50%); z-index: 2;
+      font-size: 20px; color: var(--muted);
+      animation: bounce 2.2s ease-in-out infinite;
+    }
+    @keyframes bounce {
+      0%, 100% { transform: translateX(-50%) translateY(0); opacity: .35; }
+      50%       { transform: translateX(-50%) translateY(9px); opacity: .75; }
+    }
 
-.grid{position:fixed;inset:0;z-index:1;pointer-events:none;
-  background-image:linear-gradient(rgba(124,107,255,.035) 1px,transparent 1px),
-                   linear-gradient(90deg,rgba(124,107,255,.035) 1px,transparent 1px);
-  background-size:52px 52px;
-  mask-image:radial-gradient(ellipse 80% 70% at 50% 40%,black 20%,transparent 100%)}
+    /* SHARED */
+    .section { padding: 120px 0; }
+    .container { max-width: 1080px; margin: 0 auto; padding: 0 48px; }
+    .label { font-size: 10px; font-weight: 700; letter-spacing: .22em; text-transform: uppercase; color: var(--purple); margin-bottom: 20px; display: block; }
+    .h2 { font-size: clamp(26px, 3.2vw, 42px); font-weight: 700; letter-spacing: .04em; line-height: 1.15; color: var(--text); }
+    .reveal { opacity: 0; transform: translateY(22px); transition: opacity .7s ease, transform .7s ease; }
+    .reveal.in { opacity: 1; transform: none; }
 
-/* ── SCRAMBLE ──────────────────────────────────── */
-#intro{
-  position:fixed;inset:0;z-index:50;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;
-  background:var(--bg);transition:opacity .9s ease}
-#intro.fade{opacity:0;pointer-events:none}
+    /* CONSTRAINT */
+    #constraint { background: var(--s1); }
+    .constraint-inner { max-width: 780px; }
+    .constraint-lead { font-size: clamp(20px, 1.9vw, 28px); font-weight: 700; letter-spacing: .04em; line-height: 1.35; color: var(--text); margin-bottom: 32px; max-width: 560px; }
+    .constraint-lead em { font-style: normal; color: var(--purple); }
+    .constraint-body { font-size: 13px; line-height: 1.9; color: var(--muted); max-width: 640px; margin-bottom: 14px; }
 
-.intro-label{font-size:9px;font-weight:500;letter-spacing:.38em;
-  text-transform:uppercase;color:var(--muted)}
+    /* USE CASES */
+    .tabs { display: flex; border-bottom: 1px solid var(--s3); margin-bottom: 52px; overflow-x: auto; scrollbar-width: none; }
+    .tabs::-webkit-scrollbar { display: none; }
+    .tab-btn {
+      font-family: var(--font); font-size: 10px; font-weight: 700;
+      letter-spacing: .16em; text-transform: uppercase;
+      color: var(--muted); background: none; border: none;
+      padding: 12px 24px; cursor: pointer; white-space: nowrap;
+      position: relative; transition: color .2s;
+    }
+    .tab-btn::after { content: ''; position: absolute; bottom: -1px; left: 0; right: 0; height: 2px; background: var(--purple); transform: scaleX(0); transition: transform .25s; }
+    .tab-btn.active { color: var(--text); }
+    .tab-btn.active::after { transform: scaleX(1); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: grid; grid-template-columns: 1.3fr 1fr; gap: 80px; align-items: center; }
+    .tab-text h3 { font-size: clamp(18px, 2.2vw, 28px); font-weight: 700; letter-spacing: .04em; line-height: 1.2; margin-bottom: 20px; }
+    .tab-text p { font-size: 13px; line-height: 1.9; color: var(--muted); }
+    .tab-metric { text-align: right; }
+    .tab-metric .num { display: block; font-size: clamp(52px, 7vw, 88px); font-weight: 700; letter-spacing: -.02em; color: var(--purple); line-height: 1; }
+    .tab-metric .desc { display: block; margin-top: 10px; font-size: 10px; font-weight: 400; letter-spacing: .18em; text-transform: uppercase; color: var(--muted); max-width: 220px; margin-left: auto; line-height: 1.6; }
 
-#scramble-line{
-  font-size:clamp(13px,1.5vw,17px);font-weight:700;letter-spacing:.14em;
-  text-transform:uppercase;color:var(--txt);min-height:1.5em;text-align:center;
-  white-space:nowrap}
+    /* MODELS */
+    #models { background: var(--s1); }
+    .models-table { width: 100%; border-collapse: collapse; margin-top: 44px; }
+    .models-table thead tr { border-bottom: 1px solid var(--s3); }
+    .models-table th { font-size: 10px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--muted); padding-bottom: 16px; text-align: left; }
+    .models-table th:not(:first-child) { text-align: right; }
+    .models-table td { padding: 28px 0; border-bottom: 1px solid rgba(43,43,57,.5); font-size: 13px; vertical-align: middle; }
+    .models-table td:not(:first-child) { text-align: right; }
+    .models-table tr.live td { color: var(--text); }
+    .models-table tr.soon td { color: var(--muted); }
+    .model-cell { display: flex; align-items: center; gap: 16px; }
+    .model-cell img { width: 30px; height: 30px; border-radius: 5px; object-fit: contain; flex-shrink: 0; }
+    .model-name { font-size: 13px; font-weight: 700; letter-spacing: .06em; color: var(--text); }
+    tr.soon .model-name { color: var(--muted); }
+    .badge { display: inline-block; font-size: 8px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; padding: 4px 8px; margin-left: 12px; vertical-align: middle; }
+    .badge-live { background: rgba(124,107,255,.15); color: var(--purple); }
+    .badge-soon { background: rgba(245,245,245,.06); color: var(--muted); }
+    .status-live { color: var(--purple); }
+    .status-soon { color: var(--muted); }
+    tr.byom td { border-bottom: none; padding: 24px 0 0; }
+    .byom-cell {
+      display: flex; align-items: center; gap: 16px;
+      background: rgba(124,107,255,.06);
+      border: 1px dashed rgba(124,107,255,.3);
+      padding: 18px 24px;
+    }
+    .byom-plus { font-size: 20px; font-weight: 700; color: var(--purple); line-height: 1; flex-shrink: 0; }
+    .byom-label { font-size: 13px; font-weight: 700; letter-spacing: .06em; color: var(--text); }
+    .byom-desc { font-size: 11px; color: var(--muted); letter-spacing: .04em; flex: 1; }
+    .byom-link {
+      font-family: var(--font); font-size: 10px; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--purple); text-decoration: none; white-space: nowrap;
+      transition: opacity .2s;
+    }
+    .byom-link:hover { opacity: .7; }
 
-/* ── HERO ──────────────────────────────────────── */
-#hero{position:relative;z-index:10;min-height:100vh;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
-  padding:60px 24px;opacity:0;transition:opacity .9s ease}
-#hero.on{opacity:1}
+    /* INTEGRATION */
+    .integration-grid { display: grid; grid-template-columns: 1fr 1.35fr; gap: 80px; align-items: start; margin-top: 44px; }
+    .integration-copy h2 { font-size: clamp(22px, 2.6vw, 34px); font-weight: 700; letter-spacing: .04em; line-height: 1.2; margin-bottom: 20px; }
+    .integration-copy h2 em { font-style: normal; color: var(--purple); }
+    .integration-copy p { font-size: 13px; line-height: 1.9; color: var(--muted); }
+    .code-block { background: var(--s1); border: 1px solid var(--s3); overflow: hidden; }
+    .code-tabs-row { display: flex; border-bottom: 1px solid var(--s3); }
+    .code-tab {
+      font-family: var(--font); font-size: 10px; font-weight: 700;
+      letter-spacing: .14em; text-transform: uppercase;
+      color: var(--muted); background: none; border: none;
+      padding: 12px 20px; cursor: pointer;
+      border-bottom: 2px solid transparent; transition: color .2s, border-color .2s;
+    }
+    .code-tab.active { color: var(--text); border-bottom-color: var(--purple); }
+    .code-body { display: none; padding: 28px 28px 32px; overflow-x: auto; }
+    .code-body.active { display: block; }
+    .code-body pre { font-family: var(--font); font-size: 12px; line-height: 1.78; white-space: pre; color: var(--text); }
+    .cc { color: var(--muted); }
+    .ck { color: var(--purple); }
+    .cs { color: #9EFFC0; }
+    .cn { color: #FFD166; }
 
-.logo-wrap{clip-path:inset(100% 0 0 0);transition:clip-path 1.1s cubic-bezier(.16,1,.3,1)}
-.logo-wrap.on{clip-path:inset(0% 0 0 0)}
-#logo-img{display:block;width:80px;height:auto}
+    /* STATS BAR */
+    #stats { background: var(--s1); padding: 64px 0; }
+    .stats-row { display: flex; flex-wrap: wrap; justify-content: center; align-items: stretch; }
+    .stat-cell { padding: 20px 56px; text-align: center; position: relative; flex: 1 1 auto; }
+    .stat-cell:not(:last-child)::after { content: ''; position: absolute; right: 0; top: 15%; height: 70%; width: 1px; background: var(--s3); }
+    .stat-val { display: block; font-size: clamp(22px, 2.8vw, 36px); font-weight: 700; letter-spacing: .03em; color: var(--text); line-height: 1; }
+    .stat-val span { color: var(--purple); }
+    .stat-lbl { display: block; margin-top: 8px; font-size: 9px; font-weight: 400; letter-spacing: .22em; text-transform: uppercase; color: var(--muted); }
 
-.lockup{display:flex;align-items:center;gap:28px;margin-bottom:40px}
-.wordmark{display:flex;flex-direction:column;line-height:1;gap:1px}
-.wm{display:block;font-size:clamp(30px,5vw,54px);font-weight:700;
-  letter-spacing:.2em;text-transform:uppercase;color:var(--txt);
-  opacity:0;transform:translateX(-18px);transition:opacity .5s ease,transform .55s ease}
-.wm.on{opacity:1;transform:translateX(0)}
+    /* CTA */
+    #cta { padding: 160px 0; text-align: center; }
+    .cta-head { font-size: clamp(28px, 4vw, 52px); font-weight: 700; letter-spacing: .04em; line-height: 1.15; max-width: 720px; margin: 0 auto 52px; }
+    .cta-head em { font-style: normal; color: var(--purple); }
+    .cta-btn {
+      font-family: var(--font); font-size: 11px; font-weight: 700;
+      letter-spacing: .18em; text-transform: uppercase;
+      color: var(--bg); background: var(--text);
+      padding: 18px 44px; text-decoration: none; display: inline-block;
+      transition: background .2s, color .2s;
+    }
+    .cta-btn:hover { background: var(--purple); color: var(--text); }
 
-.tagrow{display:flex;align-items:center;gap:16px;margin-bottom:60px;
-  opacity:0;transition:opacity 1s ease}
-.tagrow.on{opacity:1}
-.tgrule{width:32px;height:1px;background:linear-gradient(90deg,transparent,var(--p4))}
-.tgrule.r{background:linear-gradient(270deg,transparent,var(--p4))}
-.tagline{font-size:clamp(7px,1vw,9px);font-weight:500;letter-spacing:.18em;
-  text-transform:uppercase;color:var(--p);white-space:nowrap}
+    /* FOOTER */
+    footer { border-top: 1px solid var(--s3); padding: 36px 48px; display: flex; align-items: center; justify-content: space-between; }
+    .footer-brand { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .footer-brand img { width: 20px; height: 20px; }
+    .footer-brand span { font-size: 11px; font-weight: 700; letter-spacing: .14em; text-transform: uppercase; color: var(--text); }
+    .footer-copy { font-size: 10px; color: var(--muted); letter-spacing: .1em; }
 
-/* ── STATS BAR ─────────────────────────────────── */
-.stats{display:flex;align-items:center;gap:48px;margin-bottom:32px;
-  opacity:0;transition:opacity 1s ease}
-.stats.on{opacity:1}
-.stat{display:flex;flex-direction:column;align-items:center;gap:5px}
-.stat-val{font-size:clamp(20px,2.8vw,32px);font-weight:700;color:var(--p);
-  letter-spacing:.04em;line-height:1}
-.stat-lbl{font-size:7px;font-weight:500;letter-spacing:.28em;
-  text-transform:uppercase;color:var(--muted);white-space:nowrap}
-.stat-sep{width:1px;height:36px;background:var(--s3)}
-
-.divider{width:100%;max-width:680px;height:1px;margin-bottom:40px;
-  opacity:0;transition:opacity .8s ease;
-  background:linear-gradient(90deg,transparent,var(--s3) 15%,var(--p2) 50%,var(--s3) 85%,transparent)}
-.divider.on{opacity:1}
-
-.mlbl{font-size:8px;font-weight:500;letter-spacing:.36em;text-transform:uppercase;
-  color:var(--muted);margin-bottom:18px;opacity:0;transition:opacity .8s ease}
-.mlbl.on{opacity:1}
-
-/* ── MARQUEE ───────────────────────────────────── */
-.mq-outer{width:100%;max-width:1000px;overflow:hidden;position:relative;
-  opacity:0;transition:opacity 1s ease}
-.mq-outer.on{opacity:1}
-.mq-outer::before,.mq-outer::after{content:'';position:absolute;top:0;bottom:0;
-  width:80px;z-index:2;pointer-events:none}
-.mq-outer::before{left:0;background:linear-gradient(90deg,var(--bg),transparent)}
-.mq-outer::after{right:0;background:linear-gradient(270deg,var(--bg),transparent)}
-.mq-track{display:flex;width:max-content;animation:scroll 44s linear infinite}
-.mq-track:hover{animation-play-state:paused}
-@keyframes scroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
-
-.mchip{
-  display:flex;flex-direction:row;align-items:center;gap:10px;
-  padding:10px 16px;border:1px solid var(--s3);background:var(--s1);
-  margin:0 5px;flex-shrink:0;height:56px;
-  clip-path:polygon(6px 0%,100% 0%,calc(100% - 6px) 100%,0% 100%);
-  transition:border-color .2s,background .2s;cursor:default}
-.mchip:hover{border-color:var(--p);background:var(--s2)}
-.mchip-logo{width:32px;height:32px;display:flex;align-items:center;
-  justify-content:center;overflow:hidden;border-radius:4px;flex-shrink:0}
-.mchip-logo img{display:block;width:32px;height:32px;object-fit:contain}
-.mchip-text{display:flex;flex-direction:column;gap:2px}
-.mchip-name{font-size:10px;font-weight:700;letter-spacing:.08em;
-  text-transform:uppercase;color:var(--txt);white-space:nowrap;line-height:1.2}
-.mchip-family{font-size:8px;font-weight:500;letter-spacing:.12em;
-  text-transform:uppercase;color:var(--muted);white-space:nowrap}
-
-/* CTA */
-.cta-wrap{margin-top:40px;display:flex;justify-content:center;
-  opacity:0;transition:opacity 1s ease}
-.cta-wrap.on{opacity:1}
-.cta-btn{
-  display:inline-block;padding:8px 0;
-  background:transparent;border:none;
-  color:var(--p);font-family:'IBM Plex Mono',monospace;
-  font-size:10px;font-weight:700;letter-spacing:.28em;text-transform:uppercase;
-  text-decoration:none;cursor:pointer;
-  transition:opacity .2s}
-.cta-btn:hover{opacity:.7}
-
-.footer{position:absolute;bottom:20px;left:0;right:0;
-  display:flex;justify-content:center;gap:20px;
-  font-size:8px;letter-spacing:.22em;text-transform:uppercase;
-  color:var(--muted);opacity:0;transition:opacity 1.2s ease}
-.footer.on{opacity:1}
-.fsep{opacity:.3}
-</style>
+    /* RESPONSIVE */
+    @media (max-width: 860px) {
+      nav { padding: 20px 24px; }
+      .nav-wordmark { display: none; }
+      .container { padding: 0 24px; }
+      .section { padding: 80px 0; }
+      .tab-pane.active { grid-template-columns: 1fr; gap: 36px; }
+      .tab-metric { text-align: left; }
+      .tab-metric .desc { margin-left: 0; max-width: none; }
+      .integration-grid { grid-template-columns: 1fr; gap: 40px; }
+      .stat-cell { padding: 20px 28px; }
+      .stat-cell:not(:last-child)::after { display: none; }
+      footer { flex-direction: column; gap: 16px; text-align: center; }
+    }
+  </style>
 </head>
 <body>
 
-<canvas id="bg-canvas"></canvas>
-<div class="grid"></div>
+<nav>
+  <a class="nav-brand" href="#">
+    <img src="alloy_symbol_purple.png" alt="Alloy">
+    <span class="nav-wordmark">Alloy Compute</span>
+  </a>
+  <a class="nav-cta" href="mailto:team@alloycompute.com">Request Access</a>
+</nav>
 
-<!-- SCRAMBLE -->
-<div id="intro">
-  <p class="intro-label">INITIALIZING INFERENCE</p>
-  <div id="scramble-line">&nbsp;</div>
-</div>
-
-<!-- HERO -->
-<main id="hero">
-  <div class="lockup">
-    <div class="logo-wrap" id="logo-wrap">
-      <img id="logo-img" src="alloy_symbol_purple.png" alt="Alloy Compute"/>
+<section id="hero">
+  <canvas id="wave-canvas"></canvas>
+  <div class="hero-content">
+    <div class="hero-logo">
+      <img id="hero-logo" src="alloy_symbol_purple.png" alt="Alloy Compute">
     </div>
-    <div class="wordmark">
-      <span class="wm" id="wm0">ALLOY</span>
-      <span class="wm" id="wm1">COMPUTE</span>
+    <div id="scramble">&nbsp;</div>
+    <p class="hero-tagline">The inference API for latency-critical workloads</p>
+  </div>
+  <div class="scroll-cue">&#8595;</div>
+</section>
+
+<section id="constraint" class="section">
+  <div class="container">
+    <div class="constraint-inner reveal">
+      <span class="label">The constraint</span>
+      <h2 class="constraint-lead">
+        Real-time AI runs on a latency budget you <em>can't negotiate.</em>
+      </h2>
+      <p class="constraint-body">
+        A single slow request breaks a voice turn, misses a trade window, or triggers user abandonment.
+      </p>
+      <p class="constraint-body">
+        Alloy runs on custom FPGA inference cards. Memory bandwidth, kernel scheduling, and attention
+        computation are optimized end-to-end for transformer workloads — no GPU contention, no
+        competing tenants, no driver overhead. A direct path from request to token, predictable by design.
+      </p>
     </div>
   </div>
+</section>
 
-  <div class="tagrow" id="tagrow">
-    <div class="tgrule"></div>
-    <span class="tagline">the inference api for latency-critical workloads</span>
-    <div class="tgrule r"></div>
+<section id="use-cases" class="section">
+  <div class="container">
+    <span class="label reveal">Latency-critical verticals</span>
+    <h2 class="h2 reveal" style="margin-bottom:48px;">Where milliseconds are the product.</h2>
+    <div class="tabs reveal">
+      <button class="tab-btn active" data-tab="voice">Voice AI</button>
+      <button class="tab-btn" data-tab="commerce">Live Commerce</button>
+      <button class="tab-btn" data-tab="code">Code Completion</button>
+      <button class="tab-btn" data-tab="cyber">Cybersecurity</button>
+      <button class="tab-btn" data-tab="hft">HFT</button>
+    </div>
+    <div class="tab-pane active" id="tab-voice">
+      <div class="tab-text">
+        <h3>Voice AI &amp; Real-Time Speech</h3>
+        <p>Conversational AI that hesitates doesn't get a second chance. When TTFT drifts above 150ms, users detect the lag, call abandonment rises, session depth drops. Alloy holds P99 TTFT under 180ms across concurrent load, keeping voice flows natural at any scale.</p>
+      </div>
+      <div class="tab-metric">
+        <span class="num">150ms</span>
+        <span class="desc">Human perception threshold for conversational delay</span>
+      </div>
+    </div>
+    <div class="tab-pane" id="tab-commerce">
+      <div class="tab-text">
+        <h3>Live Commerce &amp; Stream Shopping</h3>
+        <p>Product questions during a livestream have a zero-second tolerance window. Viewers who don't get instant answers scroll past. Alloy powers real-time product lookup, recommendation, and Q&A on streams handling millions of concurrent viewers.</p>
+      </div>
+      <div class="tab-metric">
+        <span class="num">300ms</span>
+        <span class="desc">Average time before a viewer abandons a slow recommendation</span>
+      </div>
+    </div>
+    <div class="tab-pane" id="tab-code">
+      <div class="tab-text">
+        <h3>Code Completion &amp; IDE Acceleration</h3>
+        <p>Completions that arrive after the developer has already moved on aren't completions. They're interruptions.. Staying under 200ms keeps suggestions invisible and actually used. Alloy keeps large-context completions fast enough to feel native.</p>
+      </div>
+      <div class="tab-metric">
+        <span class="num">200ms</span>
+        <span class="desc">Completion cutoff for developer acceptance rate</span>
+      </div>
+    </div>
+    <div class="tab-pane" id="tab-cyber">
+      <div class="tab-text">
+        <h3>Cybersecurity &amp; Threat Intelligence</h3>
+        <p>Threat scoring is only actionable in the moment. Models that can't keep pace with event ingestion create false confidence — not real coverage. Alloy processes security events at the speed they arrive, with no queue buildup under load.</p>
+      </div>
+      <div class="tab-metric">
+        <span class="num">50K+</span>
+        <span class="desc">Security events per second requiring real-time AI scoring</span>
+      </div>
+    </div>
+    <div class="tab-pane" id="tab-hft">
+      <div class="tab-text">
+        <h3>High-Frequency Trading &amp; Market Intelligence</h3>
+        <p>When your edge depends on reading order flow faster than competitors, inference latency isn't an engineering metric. It's P&amp;L.. Alloy provides the lowest-latency access to open-weight financial intelligence models.</p>
+      </div>
+      <div class="tab-metric">
+        <span class="num">1ms</span>
+        <span class="desc">Order book update interval at major trading venues</span>
+      </div>
+    </div>
   </div>
+</section>
 
-  <div class="divider" id="divider"></div>
-  <div class="mq-outer" id="mq"><div class="mq-track" id="mqt"></div></div>
+<section id="models" class="section">
+  <div class="container">
+    <span class="label reveal">Production models</span>
+    <h2 class="h2 reveal">Available now. More coming.</h2>
+    <div class="reveal">
+      <table class="models-table">
+        <thead>
+          <tr>
+            <th>Model</th><th>Speed</th><th>Input / Output</th><th>Context</th><th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="live">
+            <td>
+              <div class="model-cell">
+                <img src="https://cdn.simpleicons.org/meta/white" alt="Meta" loading="lazy">
+                <span class="model-name">Llama 4 Maverick</span>
+                <span class="badge badge-live">Live</span>
+              </div>
+            </td>
+            <td>280 T/s</td><td>$0.27 / $0.85</td><td>128K</td>
+            <td class="status-live">&#9679; Available</td>
+          </tr>
+          <tr class="soon">
+            <td>
+              <div class="model-cell">
+                <img src="https://avatars.githubusercontent.com/u/148330874?s=64" alt="DeepSeek" loading="lazy">
+                <span class="model-name">DeepSeek R1</span>
+                <span class="badge badge-soon">Coming Soon</span>
+              </div>
+            </td>
+            <td>&#8212;</td><td>TBA</td><td>&#8212;</td>
+            <td class="status-soon">&#9675; Waitlist</td>
+          </tr>
+          <tr class="byom">
+            <td colspan="5">
+              <div class="byom-cell">
+                <span class="byom-plus">+</span>
+                <span class="byom-label">Bring Your Own Model</span>
+                <span class="byom-desc">Deploy any open-weight model on Alloy FPGA infrastructure</span>
+                <a class="byom-link" href="mailto:team@alloycompute.com">Request deployment &#8594;</a>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
 
-  <div class="stats" id="stats">
-    <div class="stat">
-      <span class="stat-val">&lt;200MS</span>
+<section id="integration" class="section">
+  <div class="container">
+    <span class="label reveal">Integration</span>
+    <div class="integration-grid reveal">
+      <div class="integration-copy">
+        <h2>Switch in<br><em>two lines.</em></h2>
+        <p>Alloy is OpenAI API-compatible. If you're already on Groq, OpenAI, or any other provider, swap two environment variables and you're live. No SDK changes. No migration work. Same interface, better guarantees.</p>
+      </div>
+      <div class="code-block">
+        <div class="code-tabs-row">
+          <button class="code-tab active" data-code="python">Python</button>
+          <button class="code-tab" data-code="js">JavaScript</button>
+        </div>
+        <div class="code-body active" id="code-python"><pre><span class="cc"># Change these two lines from your existing Groq / OpenAI setup</span>
+<span class="ck">import</span> os
+<span class="ck">import</span> openai
+
+client = openai.OpenAI(
+    base_url=<span class="cs">"https://api.alloycompute.com/v1"</span>,
+    api_key=os.environ.get(<span class="cs">"ALLOY_API_KEY"</span>)
+)
+
+response = client.chat.completions.create(
+    model=<span class="cs">"llama-4-maverick"</span>,
+    messages=[{<span class="cs">"role"</span>: <span class="cs">"user"</span>, <span class="cs">"content"</span>: <span class="cs">"Hello"</span>}]
+)</pre></div>
+        <div class="code-body" id="code-js"><pre><span class="cc">// Change these two lines from your existing Groq / OpenAI setup</span>
+<span class="ck">import</span> OpenAI <span class="ck">from</span> <span class="cs">"openai"</span>;
+
+<span class="ck">const</span> client = <span class="ck">new</span> OpenAI({
+  baseURL: <span class="cs">"https://api.alloycompute.com/v1"</span>,
+  apiKey: process.env.<span class="cn">ALLOY_API_KEY</span>,
+});
+
+<span class="ck">const</span> response = <span class="ck">await</span> client.chat.completions.create({
+  model: <span class="cs">"llama-4-maverick"</span>,
+  messages: [{ role: <span class="cs">"user"</span>, content: <span class="cs">"Hello"</span> }],
+});</pre></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="stats">
+  <div class="stats-row reveal">
+    <div class="stat-cell">
+      <span class="stat-val"><span>&lt;</span>200MS</span>
       <span class="stat-lbl">P99 TTFT</span>
     </div>
-    <div class="stat-sep"></div>
-    <div class="stat">
-      <span class="stat-val">30+</span>
-      <span class="stat-lbl">Open-Weight Models</span>
+    <div class="stat-cell">
+      <span class="stat-val">30<span>+</span></span>
+      <span class="stat-lbl">Open-weight models</span>
     </div>
-    <div class="stat-sep"></div>
-    <div class="stat">
-      <span class="stat-val">DEDICATED</span>
-      <span class="stat-lbl">Inference Cards</span>
+    <div class="stat-cell">
+      <span class="stat-val" style="font-size:clamp(16px,1.8vw,22px);letter-spacing:.06em;">DEDICATED</span>
+      <span class="stat-lbl">Inference silicon</span>
+    </div>
+    <div class="stat-cell">
+      <span class="stat-val" style="font-size:clamp(16px,1.8vw,22px);letter-spacing:.06em;">NO GATES</span>
+      <span class="stat-lbl">No rate limits</span>
     </div>
   </div>
+</section>
 
-  <div class="cta-wrap" id="cta">
-    <a class="cta-btn" href="mailto:hello@alloycompute.com">Request API Access</a>
+<section id="cta" class="section">
+  <div class="container">
+    <div class="reveal">
+      <h2 class="cta-head">Built for teams that<br>can't afford to be <em>slow.</em></h2>
+      <a class="cta-btn" href="mailto:team@alloycompute.com">Request API Access</a>
+    </div>
   </div>
+</section>
 
-  <div class="footer" id="footer">
-    <span>© 2025 Alloy Compute</span>
-    <span class="fsep">//</span>
-    <span>alloycompute.com</span>
-  </div>
-</main>
+<footer>
+  <a class="footer-brand" href="#">
+    <img src="alloy_symbol_purple.png" alt="Alloy">
+    <span>Alloy Compute</span>
+  </a>
+  <span class="footer-copy">&#169; 2026 Alloy Compute. All rights reserved.</span>
+</footer>
 
 <script>
-/* ── CANVAS WAVES ─────────────────────────────── */
 (function(){
-  const cv=document.getElementById('bg-canvas'),ctx=cv.getContext('2d');
-  let W,H;
-  const resize=()=>{W=cv.width=window.innerWidth;H=cv.height=window.innerHeight};
-  window.addEventListener('resize',resize);resize();
-  const waves=[
-    {f:.0018,a:65,s:.20,y:.28,o:.05},{f:.0026,a:42,s:.33,y:.48,o:.038},
-    {f:.0013,a:88,s:.14,y:.62,o:.048},{f:.0032,a:28,s:.48,y:.38,o:.03},
-    {f:.0016,a:52,s:.26,y:.72,o:.042},{f:.004, a:18,s:.58,y:.55,o:.024},
-  ];
-  let t=0;
-  (function draw(){
+  var canvas=document.getElementById('wave-canvas'),ctx=canvas.getContext('2d'),W,H;
+  function resize(){W=canvas.width=window.innerWidth;H=canvas.height=window.innerHeight;}
+  resize();window.addEventListener('resize',resize);
+  var WV=[
+    {amp:48,freq:.011,spd:.55,y:.44,op:.055},
+    {amp:68,freq:.007,spd:.38,y:.50,op:.040},
+    {amp:32,freq:.017,spd:.82,y:.55,op:.045},
+    {amp:82,freq:.005,spd:.28,y:.41,op:.030},
+    {amp:26,freq:.021,spd:1.0,y:.58,op:.035},
+    {amp:52,freq:.009,spd:.50,y:.48,op:.050}
+  ],t=0;
+  function draw(){
     ctx.clearRect(0,0,W,H);
-    waves.forEach(w=>{
-      ctx.beginPath();
-      ctx.strokeStyle=`rgba(124,107,255,${w.o})`;ctx.lineWidth=1.5;
-      const y0=H*w.y;
-      for(let x=0;x<=W;x+=3){
-        const y=y0+Math.sin(x*w.f+t*w.s)*w.a+Math.sin(x*w.f*1.8+t*w.s*.55)*(w.a*.28);
-        x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
-      }
+    WV.forEach(function(w){
+      ctx.beginPath();ctx.strokeStyle='rgba(124,107,255,'+w.op+')';ctx.lineWidth=1.5;
+      for(var x=0;x<=W;x+=3){var y=H*w.y+Math.sin(x*w.freq+t*w.spd)*w.amp;x===0?ctx.moveTo(x,y):ctx.lineTo(x,y);}
       ctx.stroke();
     });
-    t+=.016;requestAnimationFrame(draw);
-  })();
+    t+=0.016;requestAnimationFrame(draw);
+  }
+  draw();
 })();
 
-/* ── SCRAMBLE — single line, left-to-right reveal ── */
 (function(){
-  const CHARS='!<>-_\\/[]{}=+*^?#°$§&@%|;:~';
-  const el=document.getElementById('scramble-line');
-
-  // Short sequence: DeepSeek → Qwen → Kimi → brand
-  const PHRASES=[
-    'DEEPSEEK-R1  /  TTFT 180MS  /  312 TOK/S',
-    'QWEN3-CODER  /  TTFT 195MS  /  287 TOK/S',
-    'KIMI-K2      /  TTFT 210MS  /  224 TOK/S',
-    'ALLOY COMPUTE',
-  ];
-
-  function rand(){return CHARS[Math.floor(Math.random()*CHARS.length)];}
-
-  function reveal(target,duration,holdMs,onDone){
-    const start=performance.now(),len=target.length;
-    (function tick(now){
-      const p=Math.min((now-start)/duration,1);
-      const locked=Math.floor(p*len);
-      let out='';
-      for(let i=0;i<len;i++){
-        if(i<locked||target[i]===' '||target[i]==='/')out+=target[i];
-        else out+=rand();
+  var CHARS='ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789/-.',
+  PHRASES=['DEEPSEEK-R1  /  TTFT 180MS  /  312 TOK/S','QWEN3-CODER  /  TTFT 195MS  /  287 TOK/S','KIMI-K2      /  TTFT 210MS  /  224 TOK/S','ALLOY COMPUTE'],
+  el=document.getElementById('scramble'),idx=0,raf=null;
+  function scrambleTo(target,onDone){
+    var frame=0,len=target.length;
+    function tick(){
+      var locked=Math.min(len,Math.floor(frame/1.5)),out='';
+      for(var i=0;i<len;i++){
+        if(i<locked)out+=target[i];
+        else if(target[i]===' ')out+=' ';
+        else out+=CHARS[Math.floor(Math.random()*CHARS.length)];
       }
       el.textContent=out;
-      p<1?requestAnimationFrame(tick):(el.textContent=target,onDone&&setTimeout(onDone,holdMs));
-    })(start);
-  }
-
-  function go(i){
-    if(i>=PHRASES.length){
-      // Brief scramble-out then show hero
-      let n=0;
-      const t=PHRASES[PHRASES.length-1],len=t.length;
-      const iv=setInterval(()=>{
-        let o='';for(let i=0;i<len;i++)o+=rand();
-        el.textContent=o;
-        if(++n>6){
-          clearInterval(iv);
-          document.getElementById('intro').classList.add('fade');
-          document.getElementById('hero').classList.add('on');
-          setTimeout(()=>document.getElementById('logo-wrap').classList.add('on'),500);
-          setTimeout(()=>{
-            document.getElementById('wm0').classList.add('on');
-            setTimeout(()=>document.getElementById('wm1').classList.add('on'),200);
-          },1000);
-          setTimeout(()=>document.getElementById('tagrow').classList.add('on'),1700);
-          setTimeout(()=>{on('divider');on('mq');},2200);
-          setTimeout(()=>on('stats'),2800);
-          setTimeout(()=>{on('cta');on('footer');},3300);
-        }
-      },65);
-      return;
+      if(locked>=len){el.textContent=target;if(onDone)setTimeout(onDone,700);return;}
+      frame++;raf=requestAnimationFrame(tick);
     }
-    const isLast=i===PHRASES.length-1;
-    reveal(PHRASES[i],1600,isLast?1000:650,()=>go(i+1));
+    if(raf)cancelAnimationFrame(raf);raf=requestAnimationFrame(tick);
   }
-
-  function on(id){document.getElementById(id).classList.add('on');}
-  window.addEventListener('load',()=>setTimeout(()=>go(0),300));
+  function next(){idx++;if(idx>=PHRASES.length)return;scrambleTo(PHRASES[idx],idx===PHRASES.length-1?null:next);}
+  setTimeout(function(){scrambleTo(PHRASES[0],next);},900);
 })();
 
-/* ── MODEL CAROUSEL ───────────────────────────── */
-(function(){
-  const MODELS=[
-    {src:'https://avatars.githubusercontent.com/u/138521508?s=64',      name:'GLM-5'},
-    {src:'https://avatars.githubusercontent.com/u/130269820?s=64',     name:'Kimi K2.5'},
-    {src:'https://avatars.githubusercontent.com/u/115128497?s=64',  name:'MiniMax M2.5'},
-    {src:'https://avatars.githubusercontent.com/u/148330874?s=64', name:'DeepSeek V3.2'},
-    {src:'https://avatars.githubusercontent.com/u/152742666?s=64',     name:'Qwen 3.5'},
-    {src:'https://avatars.githubusercontent.com/u/138521508?s=64',      name:'GLM-4.7'},
-    {src:'https://avatars.githubusercontent.com/u/148330874?s=64', name:'DeepSeek R1'},
-    {src:'https://avatars.githubusercontent.com/u/152742666?s=64',     name:'Qwen 3 235B'},
-    {src:'https://avatars.githubusercontent.com/u/14957082?s=64',   name:'GPT-oss 120B'},
-    {src:'https://avatars.githubusercontent.com/u/132372032?s=64',  name:'Mistral Large'},
-    {src:'https://avatars.githubusercontent.com/u/127706964?s=64',  name:'Step-3.5-Flash'},
-    {src:'https://cdn.simpleicons.org/nvidia/76b900',   name:'Nemotron 253B'},
-    {src:'https://cdn.simpleicons.org/meta/white',    name:'Llama 4 Maverick'},
-  ];
+window.addEventListener('load',function(){setTimeout(function(){document.getElementById('hero-logo').classList.add('revealed');},200);});
 
-  const track=document.getElementById('mqt');
-  [...MODELS,...MODELS].forEach(m=>{
-    const c=document.createElement('div');
-    c.className='mchip';
-    c.innerHTML=`
-      <div class="mchip-logo"><img src="${m.src}" alt="${m.name}" loading="lazy"></div>
-      <span class="mchip-name">${m.name}</span>`;
-    track.appendChild(c);
+document.querySelectorAll('.tab-btn').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.tab-btn').forEach(function(b){b.classList.remove('active');});
+    document.querySelectorAll('.tab-pane').forEach(function(p){p.classList.remove('active');});
+    btn.classList.add('active');
+    document.getElementById('tab-'+btn.dataset.tab).classList.add('active');
   });
-})();
+});
+
+document.querySelectorAll('.code-tab').forEach(function(btn){
+  btn.addEventListener('click',function(){
+    document.querySelectorAll('.code-tab').forEach(function(b){b.classList.remove('active');});
+    document.querySelectorAll('.code-body').forEach(function(p){p.classList.remove('active');});
+    btn.classList.add('active');
+    document.getElementById('code-'+btn.dataset.code).classList.add('active');
+  });
+});
+
+var observer=new IntersectionObserver(function(entries){
+  entries.forEach(function(e){if(e.isIntersecting){e.target.classList.add('in');observer.unobserve(e.target);}});
+},{threshold:0.12});
+document.querySelectorAll('.reveal').forEach(function(el){observer.observe(el);});
 </script>
 </body>
 </html>
