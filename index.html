@@ -270,7 +270,6 @@
       <button class="tab-btn" data-tab="commerce">Live Commerce</button>
       <button class="tab-btn" data-tab="code">Code Completion</button>
       <button class="tab-btn" data-tab="cyber">Cybersecurity</button>
-      <button class="tab-btn" data-tab="hft">HFT</button>
     </div>
     <div class="tab-pane active" id="tab-voice">
       <div class="tab-text">
@@ -312,16 +311,6 @@
         <span class="desc">Security events per second requiring real-time AI scoring</span>
       </div>
     </div>
-    <div class="tab-pane" id="tab-hft">
-      <div class="tab-text">
-        <h3>High-Frequency Trading &amp; Market Intelligence</h3>
-        <p>When your edge depends on reading order flow faster than competitors, inference latency isn't an engineering metric. It's P&amp;L.. Alloy provides the lowest-latency access to open-weight financial intelligence models.</p>
-      </div>
-      <div class="tab-metric">
-        <span class="num">1ms</span>
-        <span class="desc">Order book update interval at major trading venues</span>
-      </div>
-    </div>
   </div>
 </section>
 
@@ -333,7 +322,7 @@
       <table class="models-table">
         <thead>
           <tr>
-            <th>Model</th><th>Speed</th><th>Input / Output</th><th>Context</th><th>Status</th>
+            <th>Model</th><th>Speed</th><th>Latency</th><th>Status</th>
           </tr>
         </thead>
         <tbody>
@@ -341,26 +330,37 @@
             <td>
               <div class="model-cell">
                 <img src="https://cdn.simpleicons.org/meta/white" alt="Meta" loading="lazy">
-                <span class="model-name">Llama 4 Maverick</span>
+                <span class="model-name">Llama 3 8B</span>
                 <span class="badge badge-live">Live</span>
               </div>
             </td>
-            <td>280 T/s</td><td>$0.27 / $0.85</td><td>128K</td>
+            <td>1,000–3,000 T/s</td><td>&#60;200ms</td>
             <td class="status-live">&#9679; Available</td>
           </tr>
           <tr class="soon">
             <td>
               <div class="model-cell">
                 <img src="https://avatars.githubusercontent.com/u/148330874?s=64" alt="DeepSeek" loading="lazy">
-                <span class="model-name">DeepSeek R1</span>
+                <span class="model-name">DeepSeek</span>
                 <span class="badge badge-soon">Coming Soon</span>
               </div>
             </td>
-            <td>&#8212;</td><td>TBA</td><td>&#8212;</td>
+            <td>&#8212;</td><td>&#8212;</td>
+            <td class="status-soon">&#9675; Waitlist</td>
+          </tr>
+          <tr class="soon">
+            <td>
+              <div class="model-cell">
+                <img src="https://avatars.githubusercontent.com/u/152742666?s=64" alt="Qwen" loading="lazy">
+                <span class="model-name">Qwen</span>
+                <span class="badge badge-soon">Coming Soon</span>
+              </div>
+            </td>
+            <td>&#8212;</td><td>&#8212;</td>
             <td class="status-soon">&#9675; Waitlist</td>
           </tr>
           <tr class="byom">
-            <td colspan="5">
+            <td colspan="4">
               <div class="byom-cell">
                 <span class="byom-plus">+</span>
                 <span class="byom-label">Bring Your Own Model</span>
@@ -423,10 +423,6 @@ response = client.chat.completions.create(
     <div class="stat-cell">
       <span class="stat-val"><span>&lt;</span>200MS</span>
       <span class="stat-lbl">P99 TTFT</span>
-    </div>
-    <div class="stat-cell">
-      <span class="stat-val">30<span>+</span></span>
-      <span class="stat-lbl">Open-weight models</span>
     </div>
     <div class="stat-cell">
       <span class="stat-val" style="font-size:clamp(16px,1.8vw,22px);letter-spacing:.06em;">DEDICATED</span>
